@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+package: tripletex
+output: openapi.gen.go
+generate:
+  models: true
+  client: true
+output-options:
+  client-type-name: WriteClient
