@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,4 +42,63 @@ func mustEnv(env string) string {
 	}
 
 	return v
+}
+
+func TestFieldsBuilder(t *testing.T) {
+	for _, tt := range []struct {
+		description string
+		input       Fields
+		expected    string
+	}{
+		{
+			description: "short",
+			input: Fields{
+				"*": nil,
+				"orders": &Fields{
+					"id": nil,
+					"project": &Fields{
+						"id": nil,
+					},
+				},
+			},
+			expected: "*,orders(id,project(id))",
+		},
+		{
+			description: "long (OrderSearch)",
+			input: Fields{
+				"*": nil,
+				"contact": &Fields{
+					"id":        nil,
+					"firstName": nil,
+					"lastName":  nil,
+				},
+				"customer": &Fields{"id": nil},
+				"deliveryAddress": &Fields{
+					"*":       nil,
+					"country": nil,
+				},
+				"department":         &Fields{"id": nil},
+				"preliminaryInvoice": &Fields{"*": nil},
+				"ourContact": &Fields{
+					"id":        nil,
+					"firstName": nil,
+					"lastName":  nil,
+				},
+				"orderLines": &Fields{
+					"*": nil,
+					"product": &Fields{
+						"number": nil,
+					},
+				},
+				"project": &Fields{"id": nil},
+			},
+			expected: "*,contact(firstName,id,lastName),customer(id),deliveryAddress(*,country),department(id),orderLines(*,product(number)),ourContact(firstName,id,lastName),preliminaryInvoice(*),project(id)",
+		},
+	} {
+		t.Run(tt.description, func(t *testing.T) {
+			assert := assert.New(t)
+			result := FieldsBuilder(tt.input)
+			assert.Equal(tt.expected, result)
+		})
+	}
 }

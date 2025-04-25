@@ -5,6 +5,8 @@ package tripletex
 import (
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 )
 
 type APIClient = ClientWithResponses
@@ -43,4 +45,38 @@ func New(token *Token, opts *APIClientOpts) (*APIClient, error) {
 	}
 
 	return &APIClient{c}, nil
+}
+
+// Used with FieldsBuilder
+type Fields map[string]*Fields
+
+// Builds field string to use as parameter for queries to Tripletex.
+//
+// Returns a valid string.
+//
+// Example:
+//
+//	f := Fields{
+//		"*": nil,
+//		"orders": &Fields{
+//			"id": nil,
+//			"project": &Fields{
+//				"id": nil,
+//			},
+//		},
+//	}
+//	fmt.Println(FieldsBuilder(f))
+//	// Output: *,orders(id,project(id))
+func FieldsBuilder(input Fields) string {
+	var s []string
+	for k, v := range input {
+		if v != nil {
+			s = append(s, fmt.Sprintf("%s(%s)", k, FieldsBuilder(*v)))
+		} else {
+			s = append(s, k)
+		}
+	}
+
+	slices.Sort(s)
+	return strings.Join(s, ",")
 }
