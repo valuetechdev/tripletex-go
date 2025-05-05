@@ -78,14 +78,18 @@ func (t *Token) revalidate() error {
 	if sessionTokenRes.Value == nil {
 		return fmt.Errorf("authentication: session token value body is empty")
 	}
-	sessionToken := sessionTokenRes.Value
+	sessionToken := *sessionTokenRes.Value
 
-	expiresAt, err := time.Parse(time.DateOnly, sessionToken.ExpirationDate)
-	if err != nil {
-		return fmt.Errorf("authentication: failed to parse expiresAt (%s): %w", sessionToken.ExpirationDate, err)
+	if sessionTokenRes.Value.ExpirationDate == nil {
+		return fmt.Errorf("authentication: session token expirationDate is empty")
 	}
 
-	t.Token = sessionToken.Token
+	expiresAt, err := time.Parse(time.DateOnly, *sessionToken.ExpirationDate)
+	if err != nil {
+		return fmt.Errorf("authentication: failed to parse expiresAt (%s): %w", *sessionToken.ExpirationDate, err)
+	}
+
+	t.Token = *sessionToken.Token
 	t.ExpiresAt = expiresAt
 
 	return nil

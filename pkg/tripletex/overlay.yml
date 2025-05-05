@@ -1,0 +1,24 @@
+overlay: 1.0.0
+info:
+  title: Component Schemas Nullable Overlay
+  version: 1.0.0
+  description: Makes all component schema fields nullable in an OpenAPI specification
+actions:
+  - target: "$"
+    description: Apply metadata about this overlay
+    update:
+      info:
+        x-overlay-applied: component-schemas-nullable-overlay
+        
+  - target: "$.components.schemas.*.properties.*"
+    description: Make all schema properties nullable
+    update:
+      nullable: true
+      x-omitempty: true
+      
+  - target: "$.components.schemas.*.allOf[*].properties.*"
+    description: Make all properties in allOf schemas nullable
+    update:
+      nullable: true
+      x-omitempty: true
+      

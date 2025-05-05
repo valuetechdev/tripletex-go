@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/HEAD/configuration-schema.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/oapi-codegen/oapi-codegen/refs/heads/main/configuration-schema.json
 package: tripletex
 output: openapi.gen.go
 generate:
@@ -6,3 +6,6 @@ generate:
   client: true
 output-options:
   client-type-name: WriteClient
+  overlay:
+    path: overlay.yml
+
