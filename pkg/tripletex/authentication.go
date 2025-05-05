@@ -12,7 +12,7 @@ import (
 type Token struct {
 	ExpiresAt time.Time  `json:"expiresAt"`
 	Token     string     `json:"token"`
-	opts      *TokenOpts `json:"-"`
+	Opts      *TokenOpts `json:"opts"`
 }
 
 type TokenOpts struct {
@@ -25,7 +25,7 @@ type TokenOpts struct {
 // Returns new Token. Is expected to be used with InterceptAuth() method.
 func NewToken(opts *TokenOpts) *Token {
 	return &Token{
-		opts: opts,
+		Opts: opts,
 	}
 }
 
@@ -33,23 +33,26 @@ func NewToken(opts *TokenOpts) *Token {
 //
 // Returns error when failing to make http requests, read/parse response body.
 func (t *Token) revalidate() error {
-	if t.opts.BaseUrl == "" {
-		t.opts.BaseUrl = "https://tripletex.no/v2"
+	if t.Opts == nil {
+		return fmt.Errorf("tripletex: token opts is empty")
+	}
+	if t.Opts.BaseUrl == "" {
+		t.Opts.BaseUrl = "https://tripletex.no/v2"
 	}
 
-	if t.opts.ExpiresAt == nil {
+	if t.Opts.ExpiresAt == nil {
 		oneMonthAhead := time.Now().AddDate(0, 1, 0)
-		t.opts.ExpiresAt = &oneMonthAhead
+		t.Opts.ExpiresAt = &oneMonthAhead
 	}
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/token/session/:create", t.opts.BaseUrl), http.NoBody)
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/token/session/:create", t.Opts.BaseUrl), http.NoBody)
 	if err != nil {
 		return fmt.Errorf("authentication: failed to create http request: %w", err)
 	}
 
 	q := req.URL.Query()
-	q.Add("consumerToken", t.opts.ConsumerToken)
-	q.Add("employeeToken", t.opts.EmployeeToken)
-	q.Add("expirationDate", t.opts.ExpiresAt.Format(time.DateOnly))
+	q.Add("consumerToken", t.Opts.ConsumerToken)
+	q.Add("employeeToken", t.Opts.EmployeeToken)
+	q.Add("expirationDate", t.Opts.ExpiresAt.Format(time.DateOnly))
 	req.URL.RawQuery = q.Encode()
 
 	res, err := http.DefaultClient.Do(req)
