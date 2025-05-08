@@ -22,3 +22,7 @@ actions:
       nullable: true
       x-omitempty: true
       
+  - target: "$.components.schemas.*.required"
+    description: Remove the required property from schemas
+    remove: true
+    
