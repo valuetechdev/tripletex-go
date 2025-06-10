@@ -32,6 +32,28 @@ func TestNewClient(t *testing.T) {
 	customersRes, err := c.CustomerSearchWithResponse(context.Background(), &CustomerSearchParams{ChangedSince: &lastYearString})
 	require.NoError(err)
 	require.NotNil(customersRes)
+
+	require.NoError(token.CheckAuth())
+}
+
+func TestTokenAuth(t *testing.T) {
+	require := require.New(t)
+
+	baseUrl := mustEnv("TRIPLETEX_BASE_URL")
+	consumerToken := mustEnv("TRIPLETEX_CONSUMER_TOKEN")
+	employeeToken := mustEnv("TRIPLETEX_EMPLOYEE_TOKEN")
+	token := NewToken(&TokenOpts{
+		BaseUrl:       baseUrl,
+		ConsumerToken: consumerToken,
+		EmployeeToken: employeeToken,
+	})
+
+	require.NoError(token.CheckAuth())
+
+	tmp, err := time.Parse(time.DateOnly, "2025-01-01")
+	require.NoError(err)
+	token.ExpiresAt = tmp
+	require.NoError(token.CheckAuth())
 }
 
 // Require enviornment variable. Panics if not found.

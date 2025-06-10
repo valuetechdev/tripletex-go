@@ -44,6 +44,10 @@ func (t *Token) revalidate() error {
 		oneMonthAhead := time.Now().AddDate(0, 1, 0)
 		t.Opts.ExpiresAt = &oneMonthAhead
 	}
+	if t.Opts.ExpiresAt != nil && t.Opts.ExpiresAt.Before(time.Now()) {
+		oneMonthAhead := time.Now().AddDate(0, 1, 0)
+		t.Opts.ExpiresAt = &oneMonthAhead
+	}
 	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/token/session/:create", t.Opts.BaseUrl), http.NoBody)
 	if err != nil {
 		return fmt.Errorf("authentication: failed to create http request: %w", err)
