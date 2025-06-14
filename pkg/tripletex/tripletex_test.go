@@ -23,7 +23,7 @@ func TestNewClient(t *testing.T) {
 		EmployeeToken: employeeToken,
 	}
 
-	c := New(creds, nil)
+	c := New(creds)
 
 	require.False(c.IsTokenValid())
 	require.NoError(c.CheckAuth())

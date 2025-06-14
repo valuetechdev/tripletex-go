@@ -24,21 +24,32 @@ type Credentials struct {
 	EmployeeToken string // Client specific token
 }
 
-type Opts struct {
-	HttpClient    *http.Client  // Defaults to [http.DefaultClient]
-	TokenDuration time.Duration // Defaults to one month
+type Option func(*TripletexClient)
+
+// WithHttpClient sets a custom http.Client. Defaults to http.DefaultClient.
+func WithHttpClient(client *http.Client) Option {
+	return func(tc *TripletexClient) {
+		tc.httpClient = client
+	}
+}
+
+// WithTokenDuration sets the token duration. Defaults to one month.
+func WithTokenDuration(duration time.Duration) Option {
+	return func(tc *TripletexClient) {
+		tc.tokenDuration = duration
+	}
 }
 
 // Returns new TripletexClient.
 //
 // You can provide a different BaseURL if you want to work against Tripletex's
-// test environement via opts.
+// test environement via credentials.BaseURL.
 //
 // You can reuse an already generated token and have it revalidated if it has
 // expired, by using [TripletexClient.SetToken()].
 //
-// You can provide a custom http.Client via opts.
-func New(credentials Credentials, opts *Opts) *TripletexClient {
+// You can provide options to customize the client behavior.
+func New(credentials Credentials, options ...Option) *TripletexClient {
 	now := time.Now()
 	client := &TripletexClient{
 		credentials:   credentials,
@@ -48,13 +59,9 @@ func New(credentials Credentials, opts *Opts) *TripletexClient {
 	if client.credentials.BaseURL == "" {
 		client.credentials.BaseURL = "https://tripletex.no/v2"
 	}
-	if opts != nil {
-		if dur := opts.TokenDuration; dur != 0 {
-			client.tokenDuration = dur
-		}
-		if opts.HttpClient != nil {
-			client.httpClient = opts.HttpClient
-		}
+
+	for _, option := range options {
+		option(client)
 	}
 
 	c, err := NewClientWithResponses(
