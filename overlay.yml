@@ -26,3 +26,18 @@ actions:
     description: Remove the required property from schemas
     remove: true
     
+  - target: "$.components.schemas.LeaveOfAbsenceType"
+    description: Override bad type name for LeaveOfAbsenceType
+    update:
+      x-go-name: "LeaveOfAbsenceTypeType"
+      
+  - target: "$.components.schemas.*.properties.*[?(@.format == 'email')]"
+    description: Remove email format validation
+    update:
+      format: null
+      
+  - target: "$.paths.*.*[?(@.operationId == 'TimesheetEntry_search')]"
+    description: Fix duplicate operation ID
+    update:
+      operationId: "TimesheetEntry_search_search"
+    
