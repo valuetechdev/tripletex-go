@@ -73,6 +73,14 @@ func (c *TripletexClient) revalidate() error {
 	return nil
 }
 
+func (c *TripletexClient) GetToken() *Token {
+	return c.token
+}
+
+func (c *TripletexClient) SetToken(token *Token) {
+	c.token = token
+}
+
 // Returns true if token is valid.
 func (c *TripletexClient) IsTokenValid() bool {
 	if c.token == nil {

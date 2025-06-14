@@ -40,13 +40,13 @@ func WithTokenDuration(duration time.Duration) Option {
 	}
 }
 
-// Returns new TripletexClient.
+// Returns new [TripletexClient].
 //
 // You can provide a different BaseURL if you want to work against Tripletex's
 // test environement via credentials.BaseURL.
 //
 // You can reuse an already generated token and have it revalidated if it has
-// expired, by using [TripletexClient.SetToken()].
+// expired, by using [TripletexClient.SetToken].
 //
 // You can provide options to customize the client behavior.
 func New(credentials Credentials, options ...Option) *TripletexClient {
