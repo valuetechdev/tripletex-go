@@ -12,25 +12,24 @@ Go API client for [Tripletex]. It's generated with [oapi-codegen]
 ## Usage
 
 ```bash
-go get github.com/valuetechdev/tripletex-go/tripletex
+go get github.com/valuetechdev/tripletex-go
 ```
 
 ```go
-import "github.com/valuetechdev/tripletex-go/tripletex"
+import "github.com/valuetechdev/tripletex-go"
 
-func Whatever() error {
-	token := NewToken(&tokenOpts{
-		ConsumerToken: "",
-		EmployeeToken: "",
+func yourFunc() error {
+	client := New(tripletex.Credentials{
+		ConsumerToken: "your-token",
+		EmployeeToken: "your-token",
 	})
 
-  tt, err := tripletex.New(&tripletex.APIClientOpts{})
-
-  if err != nil {
-    return fmt.Errorf("whatever failed: %w", err)
+  // Authenticate
+  if err := client.CheckAuth(); err != nil {
+    return fmt.Errorf("auth failed: %w", err)
   }
 
-	customersRes, err := c.CustomerSearchWithResponse(context.Background(), &CustomerSearchParams{})
+	customersRes, err := client.CustomerSearchWithResponse(context.Background(), &tripletex.CustomerSearchParams{})
   if err != nil {
     return fmt.Errorf("failed to search for customers: %w", err)
   }
