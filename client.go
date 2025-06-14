@@ -40,7 +40,7 @@ func WithTokenDuration(duration time.Duration) Option {
 	}
 }
 
-// WithBaseURL sets a custom http.Client. Defaults to [http.DefaultClient].
+// WithBaseURLOption sets a custom base URL. Defaults to "https://tripletex.no/v2".
 func WithBaseURLOption(baseURL string) Option {
 	return func(tc *TripletexClient) {
 		tc.baseURL = baseURL

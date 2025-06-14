@@ -37,7 +37,7 @@ func (c *TripletexClient) revalidate() error {
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("tripletex: auth: status not OK: %s: %w", res.Status, err)
+		return fmt.Errorf("tripletex: auth: status not OK: %s", res.Status)
 	}
 
 	defer res.Body.Close()
@@ -86,7 +86,7 @@ func (c *TripletexClient) IsTokenValid() bool {
 	if c.token == nil {
 		return false
 	}
-	return time.Now().UTC().Before(c.token.ExpiresAt)
+	return time.Now().Before(c.token.ExpiresAt)
 }
 
 // Check if auth is valid.

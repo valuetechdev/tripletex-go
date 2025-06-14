@@ -35,7 +35,7 @@ func TestNewClient(t *testing.T) {
 	require.NotNil(customersRes)
 }
 
-// Require enviornment variable. Panics if not found.
+// Require environment variable. Panics if not found.
 func mustEnv(env string) string {
 	v, ok := os.LookupEnv(env)
 	if !ok {
