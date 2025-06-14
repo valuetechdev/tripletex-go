@@ -18,12 +18,11 @@ func TestNewClient(t *testing.T) {
 	consumerToken := mustEnv("TRIPLETEX_CONSUMER_TOKEN")
 	employeeToken := mustEnv("TRIPLETEX_EMPLOYEE_TOKEN")
 	creds := Credentials{
-		BaseURL:       baseURL,
 		ConsumerToken: consumerToken,
 		EmployeeToken: employeeToken,
 	}
 
-	c := New(creds)
+	c := New(creds, WithBaseURLOption(baseURL))
 
 	require.False(c.IsTokenValid())
 	require.NoError(c.CheckAuth())

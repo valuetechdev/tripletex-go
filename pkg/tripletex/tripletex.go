@@ -14,19 +14,19 @@ type TripletexClient struct {
 	token         *Token
 	tokenDuration time.Duration
 	credentials   Credentials
+	baseURL       string
 	httpClient    *http.Client
 	*ClientWithResponses
 }
 
 type Credentials struct {
-	BaseURL       string // Defaults to "https://tripletex.tech/v2"
 	ConsumerToken string // Application specific token
 	EmployeeToken string // Client specific token
 }
 
 type Option func(*TripletexClient)
 
-// WithHttpClient sets a custom http.Client. Defaults to http.DefaultClient.
+// WithHttpClient sets a custom http.Client. Defaults to [http.DefaultClient].
 func WithHttpClient(client *http.Client) Option {
 	return func(tc *TripletexClient) {
 		tc.httpClient = client
@@ -40,10 +40,14 @@ func WithTokenDuration(duration time.Duration) Option {
 	}
 }
 
+// WithBaseURL sets a custom http.Client. Defaults to [http.DefaultClient].
+func WithBaseURLOption(baseURL string) Option {
+	return func(tc *TripletexClient) {
+		tc.baseURL = baseURL
+	}
+}
+
 // Returns new [TripletexClient].
-//
-// You can provide a different BaseURL if you want to work against Tripletex's
-// test environement via credentials.BaseURL.
 //
 // You can reuse an already generated token and have it revalidated if it has
 // expired, by using [TripletexClient.SetToken].
@@ -52,12 +56,10 @@ func WithTokenDuration(duration time.Duration) Option {
 func New(credentials Credentials, options ...Option) *TripletexClient {
 	now := time.Now()
 	client := &TripletexClient{
+		baseURL:       "https://tripletex.no/v2",
 		credentials:   credentials,
 		tokenDuration: now.AddDate(0, 1, 0).Sub(now),
 		httpClient:    http.DefaultClient,
-	}
-	if client.credentials.BaseURL == "" {
-		client.credentials.BaseURL = "https://tripletex.no/v2"
 	}
 
 	for _, option := range options {
@@ -65,7 +67,7 @@ func New(credentials Credentials, options ...Option) *TripletexClient {
 	}
 
 	c, err := NewClientWithResponses(
-		client.credentials.BaseURL,
+		client.baseURL,
 		WithRequestEditorFn(client.interceptAuth),
 		WithHTTPClient(client.httpClient))
 	if err != nil {

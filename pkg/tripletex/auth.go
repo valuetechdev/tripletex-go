@@ -20,7 +20,7 @@ type Token struct {
 func (c *TripletexClient) revalidate() error {
 	creds := c.credentials
 	expiresAt := time.Now().Add(c.tokenDuration)
-	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/token/session/:create", creds.BaseURL), http.NoBody)
+	req, err := http.NewRequest(http.MethodPut, fmt.Sprintf("%s/token/session/:create", c.baseURL), http.NoBody)
 	if err != nil {
 		return fmt.Errorf("tripletex: auth: failed to create http request: %w", err)
 	}
