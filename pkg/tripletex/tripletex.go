@@ -7,44 +7,66 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 )
 
-type APIClient = ClientWithResponses
-
-type APIClientOpts struct {
-	BaseUrl    string // Defaults to "https://tripletex.tech/v2"
-	HttpClient *http.Client
+type TripletexClient struct {
+	token         *Token
+	tokenDuration time.Duration
+	credentials   Credentials
+	httpClient    *http.Client
+	*ClientWithResponses
 }
 
-// Returns APIClient for Tripletex.
+type Credentials struct {
+	BaseURL       string // Defaults to "https://tripletex.tech/v2"
+	ConsumerToken string // Application specific token
+	EmployeeToken string // Client specific token
+}
+
+type Opts struct {
+	HttpClient    *http.Client  // Defaults to [http.DefaultClient]
+	TokenDuration time.Duration // Defaults to one month
+}
+
+// Returns new TripletexClient.
 //
-// You can provide a different baseUrl if you want to work against Tripletex's
+// You can provide a different BaseURL if you want to work against Tripletex's
 // test environement via opts.
 //
 // You can reuse an already generated token and have it revalidated if it has
-// expired, by providing it via opts.
+// expired, by using [TripletexClient.SetToken()].
 //
 // You can provide a custom http.Client via opts.
-//
-// Returns error if fails to initialize client.
-func New(token *Token, opts *APIClientOpts) (*APIClient, error) {
-	if opts.BaseUrl == "" {
-		opts.BaseUrl = "https://tripletex.no/v2"
+func New(credentials Credentials, opts *Opts) *TripletexClient {
+	now := time.Now()
+	client := &TripletexClient{
+		credentials:   credentials,
+		tokenDuration: now.AddDate(0, 1, 0).Sub(now),
+		httpClient:    http.DefaultClient,
 	}
-	httpClient := http.DefaultClient
-	if opts.HttpClient != nil {
-		httpClient = opts.HttpClient
+	if client.credentials.BaseURL == "" {
+		client.credentials.BaseURL = "https://tripletex.no/v2"
+	}
+	if opts != nil {
+		if dur := opts.TokenDuration; dur != 0 {
+			client.tokenDuration = dur
+		}
+		if opts.HttpClient != nil {
+			client.httpClient = opts.HttpClient
+		}
 	}
 
 	c, err := NewClientWithResponses(
-		opts.BaseUrl,
-		WithRequestEditorFn(token.InterceptAuth),
-		WithHTTPClient(httpClient))
+		client.credentials.BaseURL,
+		WithRequestEditorFn(client.interceptAuth),
+		WithHTTPClient(client.httpClient))
 	if err != nil {
-		return nil, fmt.Errorf("tripletex: failed to create new client: %w", err)
+		panic(fmt.Errorf("tripletex: failed to create new client: %w", err))
 	}
 
-	return &APIClient{c}, nil
+	client.ClientWithResponses = c
+	return client
 }
 
 // Used with FieldsBuilder
