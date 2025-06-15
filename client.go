@@ -20,8 +20,9 @@ type TripletexClient struct {
 }
 
 type Credentials struct {
-	ConsumerToken string // Application specific token
-	EmployeeToken string // Client specific token
+	ConsumerToken      string // Application specific token
+	EmployeeToken      string // Client specific token
+	isAccountantClient bool
 }
 
 type Option func(*TripletexClient)
@@ -44,6 +45,17 @@ func WithTokenDuration(duration time.Duration) Option {
 func WithBaseURLOption(baseURL string) Option {
 	return func(tc *TripletexClient) {
 		tc.baseURL = baseURL
+	}
+}
+
+// WithAccountantClient sets EmployeeToken as username for
+// [TripletexClient.interceptAuth].
+//
+// See https://developer.tripletex.no/docs/documentation/authentication-and-tokens/#accountant-token
+// for more details.
+func WithAccountantClient() Option {
+	return func(tc *TripletexClient) {
+		tc.credentials.isAccountantClient = true
 	}
 }
 

@@ -14,7 +14,7 @@ type Token struct {
 	AccessToken string    `json:"token"`
 }
 
-// Revalidates Token.
+// Revalidates [Token].
 //
 // Returns error when failing to make http requests, read/parse response body.
 func (c *TripletexClient) revalidate() error {
@@ -101,9 +101,10 @@ func (c *TripletexClient) CheckAuth() error {
 	return nil
 }
 
-// Intercepts authentication on http request r.
+// Intercepts authentication on [http.Request] r.
 //
-// Sets the token as basic auth with username 0 and token.AccessToken as password.
+// Sets the token with basic auth with username 0 (or credentials.EmployeeToken
+// if accountant client) and [Token.AccessToken] as password.
 //
 // Returns error if unable to revalidate token.
 func (c *TripletexClient) interceptAuth(ctx context.Context, r *http.Request) error {
@@ -111,6 +112,9 @@ func (c *TripletexClient) interceptAuth(ctx context.Context, r *http.Request) er
 		return err
 	}
 	username := "0"
+	if c.credentials.isAccountantClient {
+		username = c.credentials.EmployeeToken
+	}
 	r.SetBasicAuth(username, c.token.AccessToken)
 
 	return nil
