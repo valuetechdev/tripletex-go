@@ -112,8 +112,8 @@ func (c *TripletexClient) interceptAuth(ctx context.Context, r *http.Request) er
 		return err
 	}
 	username := "0"
-	if c.credentials.isAccountantClient {
-		username = c.credentials.EmployeeToken
+	if clientId := c.credentials.clientId; clientId != 0 {
+		username = fmt.Sprintf("%d", clientId)
 	}
 	r.SetBasicAuth(username, c.token.AccessToken)
 

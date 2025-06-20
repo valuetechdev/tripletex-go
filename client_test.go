@@ -35,6 +35,32 @@ func TestNewClient(t *testing.T) {
 	require.NotNil(customersRes)
 }
 
+func TestNewClientWithAccountantClient(t *testing.T) {
+	require := require.New(t)
+
+	baseURL := mustEnv("TRIPLETEX_BASE_URL_ACCOUNTANT")
+	consumerToken := mustEnv("TRIPLETEX_CONSUMER_TOKEN_ACCOUNTANT")
+	employeeToken := mustEnv("TRIPLETEX_EMPLOYEE_TOKEN_ACCOUNTANT")
+	creds := Credentials{
+		ConsumerToken: consumerToken,
+		EmployeeToken: employeeToken,
+	}
+
+	c := New(creds, WithBaseURLOption(baseURL))
+	require.False(c.IsTokenValid())
+	require.NoError(c.CheckAuth())
+
+	res, err := c.CompanyWithLoginAccessGetWithLoginAccessWithResponse(context.Background(), &CompanyWithLoginAccessGetWithLoginAccessParams{})
+	require.NoError(err)
+	require.NotNil(res)
+
+	clientId := int64(2650584)
+	c = New(creds, WithBaseURLOption(baseURL), WithAccountantClient(clientId))
+
+	require.False(c.IsTokenValid())
+	require.NoError(c.CheckAuth())
+}
+
 // Require environment variable. Panics if not found.
 func mustEnv(env string) string {
 	v, ok := os.LookupEnv(env)
