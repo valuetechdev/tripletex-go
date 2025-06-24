@@ -3,6 +3,7 @@ package tripletex
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -47,18 +48,36 @@ func TestNewClientWithAccountantClient(t *testing.T) {
 	}
 
 	c := New(creds, WithBaseURLOption(baseURL))
-	require.False(c.IsTokenValid())
-	require.NoError(c.CheckAuth())
+	require.False(c.IsTokenValid(), "token should be invalid after init")
+	require.NoError(c.CheckAuth(), "should be able to check token after init")
+	require.True(c.IsTokenValid(), "token should be valid after check")
 
 	res, err := c.CompanyWithLoginAccessGetWithLoginAccessWithResponse(context.Background(), &CompanyWithLoginAccessGetWithLoginAccessParams{})
-	require.NoError(err)
-	require.NotNil(res)
+	require.NoError(err, "should not error for getting companies with login")
+	require.NotNil(res, "companies with login should not be nil")
+	require.NotNil(res.JSON200, "companies JSON200 with login should not be nil")
+	require.NotNil(res.JSON200.Values, "companies JSON200.Values with login should not be nil")
 
-	clientId := int64(2650584)
+	whoAmIRes, err := c.TokenSessionWhoAmIWhoAmIWithResponse(context.Background(), &TokenSessionWhoAmIWhoAmIParams{})
+	require.NoError(err, "should not error for checking whoAmI")
+	require.NotNil(whoAmIRes, "whoAmI should not be nil")
+	require.NotNil(whoAmIRes.JSON200, "whoAmI.JSON200 value should not be nil")
+	require.NotNil(whoAmIRes.JSON200.Value, "whoAmI.JSON200.Value should not be nil")
+
+	validClientId := *(*res.JSON200.Values)[0].Id
+	t.Logf("validClientId: %d", validClientId)
+	clientId := int64(validClientId)
 	c = New(creds, WithBaseURLOption(baseURL), WithAccountantClient(clientId))
+	require.False(c.IsTokenValid(), "token should be invalid after init")
+	require.NoError(c.CheckAuth(), "should be able to check token after init")
+	require.True(c.IsTokenValid(), "token should be valid after check")
 
-	require.False(c.IsTokenValid())
-	require.NoError(c.CheckAuth())
+	departmentRes, err := c.DepartmentSearchWithResponse(context.Background(), &DepartmentSearchParams{})
+	require.NoError(err, "departments search should not error")
+	require.NotNil(departmentRes, "departments res should not be nil")
+	require.Equal(http.StatusOK, departmentRes.StatusCode(), "departments status should be OK (200)")
+	require.NotNil(departmentRes.JSON200, "departments res.JSON200 should not be nil")
+	require.NotNil(departmentRes.JSON200.Values, "departments res.JSON200.Values should not be nil")
 }
 
 // Require environment variable. Panics if not found.
