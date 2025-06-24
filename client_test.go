@@ -222,6 +222,14 @@ func TestAccountantTokenEntitlements(t *testing.T) {
 	if ownerEntitlements.JSON200.Value.Name != nil {
 		t.Logf("Accountant Owner entitlement: %s", *ownerEntitlements.JSON200.Value.Name)
 	}
+	require.False(c.IsTokenValid())
+	require.NoError(c.CheckAuth())
+	departmentRes, err := c.DepartmentSearchWithResponse(context.Background(), &DepartmentSearchParams{})
+	require.NoError(err, "departments search should not error")
+	require.NotNil(departmentRes, "departments res should not be nil")
+	require.Equal(http.StatusOK, departmentRes.StatusCode(), "departments status should be OK (200)")
+	require.NotNil(departmentRes.JSON200, "departments res.JSON200 should not be nil")
+	require.NotNil(departmentRes.JSON200.Values, "departments res.JSON200.Values should not be nil")
 }
 
 // Require environment variable. Panics if not found.
