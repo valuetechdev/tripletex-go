@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,7 +67,7 @@ func TestNewClientWithAccountantClient(t *testing.T) {
 	for i, company := range *res.JSON200.Values {
 		t.Logf("  %d: ID=%d, Name=%s", i, *company.Id, *company.Name)
 	}
-	
+
 	validClientId := *(*res.JSON200.Values)[0].Id
 	t.Logf("Using clientId: %d", validClientId)
 	clientId := int64(validClientId)
@@ -76,7 +75,7 @@ func TestNewClientWithAccountantClient(t *testing.T) {
 	require.False(c.IsTokenValid(), "token should be invalid after init")
 	require.NoError(c.CheckAuth(), "should be able to check token after init")
 	require.True(c.IsTokenValid(), "token should be valid after check")
-	
+
 	// Test basic endpoint to verify auth works
 	whoAmIRes2, err := c.TokenSessionWhoAmIWhoAmIWithResponse(context.Background(), &TokenSessionWhoAmIWhoAmIParams{})
 	require.NoError(err, "whoAmI with accountant client should not error")
@@ -89,14 +88,14 @@ func TestNewClientWithAccountantClient(t *testing.T) {
 	departmentRes, err := c.DepartmentSearchWithResponse(context.Background(), &DepartmentSearchParams{})
 	require.NoError(err, "departments search should not error")
 	require.NotNil(departmentRes, "departments res should not be nil")
-	
+
 	if departmentRes.StatusCode() != http.StatusOK {
 		t.Logf("Department search failed with status: %d", departmentRes.StatusCode())
 		if departmentRes.Body != nil {
 			t.Logf("Response body: %s", string(departmentRes.Body))
 		}
 	}
-	
+
 	require.Equal(http.StatusOK, departmentRes.StatusCode(), "departments status should be OK (200)")
 	require.NotNil(departmentRes.JSON200, "departments res.JSON200 should not be nil")
 	require.NotNil(departmentRes.JSON200.Values, "departments res.JSON200.Values should not be nil")
@@ -236,58 +235,32 @@ func mustEnv(env string) string {
 func TestFieldsBuilder(t *testing.T) {
 	for _, tt := range []struct {
 		description string
-		input       Fields
+		input       *fieldsBuilderStruct
 		expected    string
 	}{
 		{
 			description: "short",
-			input: Fields{
-				"*": nil,
-				"orders": &Fields{
-					"id": nil,
-					"project": &Fields{
-						"id": nil,
-					},
-				},
-			},
-			expected: "*,orders(id,project(id))",
+			input:       FieldsBuilder.New().All().Group("orders", "id", FieldsBuilder.New().Group("project", "id")),
+			expected:    "*,orders(id,project(id))",
 		},
 		{
 			description: "long (OrderSearch)",
-			input: Fields{
-				"*": nil,
-				"contact": &Fields{
-					"id":        nil,
-					"firstName": nil,
-					"lastName":  nil,
-				},
-				"customer": &Fields{"id": nil},
-				"deliveryAddress": &Fields{
-					"*":       nil,
-					"country": nil,
-				},
-				"department":         &Fields{"id": nil},
-				"preliminaryInvoice": &Fields{"*": nil},
-				"ourContact": &Fields{
-					"id":        nil,
-					"firstName": nil,
-					"lastName":  nil,
-				},
-				"orderLines": &Fields{
-					"*": nil,
-					"product": &Fields{
-						"number": nil,
-					},
-				},
-				"project": &Fields{"id": nil},
-			},
+			input: FieldsBuilder.New().All().
+				Group("contact", "id", "firstName", "lastName").
+				Group("customer", "id").
+				Group("deliveryAddress", "*", "country").
+				Group("department", "id").
+				Group("preliminaryInvoice", "*").
+				Group("ourContact", "id", "firstName", "lastName").
+				Group("orderLines", "*", FieldsBuilder.New().Group("product", "number")).
+				Group("project", "id"),
 			expected: "*,contact(firstName,id,lastName),customer(id),deliveryAddress(*,country),department(id),orderLines(*,product(number)),ourContact(firstName,id,lastName),preliminaryInvoice(*),project(id)",
 		},
 	} {
 		t.Run(tt.description, func(t *testing.T) {
-			assert := assert.New(t)
-			result := FieldsBuilder(tt.input)
-			assert.Equal(tt.expected, result)
+			require := require.New(t)
+			result := tt.input.String()
+			require.Equal(tt.expected, result)
 		})
 	}
 }
