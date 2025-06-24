@@ -69,7 +69,6 @@ func TestNewClientWithAccountantClient(t *testing.T) {
 	for i, company := range *res.JSON200.Values {
 		t.Logf("  %d: ID=%d, Name=%s", i, *company.Id, *company.Name)
 	}
-
 	validClientId := *(*res.JSON200.Values)[0].Id
 	t.Logf("Using clientId: %d", validClientId)
 	clientId := int64(validClientId)
@@ -227,6 +226,14 @@ func TestAccountantTokenEntitlements(t *testing.T) {
 	departmentRes, err := c.DepartmentSearchWithResponse(context.Background(), &DepartmentSearchParams{})
 	require.NoError(err, "departments search should not error")
 	require.NotNil(departmentRes, "departments res should not be nil")
+
+	if departmentRes.StatusCode() != http.StatusOK {
+		t.Logf("Department search failed with status: %d", departmentRes.StatusCode())
+		if departmentRes.Body != nil {
+			t.Logf("Response body: %s", string(departmentRes.Body))
+		}
+	}
+
 	require.Equal(http.StatusOK, departmentRes.StatusCode(), "departments status should be OK (200)")
 	require.NotNil(departmentRes.JSON200, "departments res.JSON200 should not be nil")
 	require.NotNil(departmentRes.JSON200.Values, "departments res.JSON200.Values should not be nil")
