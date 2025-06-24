@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/valuetechdev/tripletex-go/fields"
 )
 
 func TestNewClient(t *testing.T) {
@@ -30,7 +31,8 @@ func TestNewClient(t *testing.T) {
 	lastYear, err := time.Parse(time.DateOnly, "2024-01-01")
 	require.NoError(err)
 	lastYearString := lastYear.Format(time.RFC3339)
-	customersRes, err := c.CustomerSearchWithResponse(context.Background(), &CustomerSearchParams{ChangedSince: &lastYearString})
+	f := fields.Builder.Add("name").Add("id").String()
+	customersRes, err := c.CustomerSearchWithResponse(context.Background(), &CustomerSearchParams{ChangedSince: &lastYearString, Fields: &f})
 	require.NoError(err)
 	require.NotNil(customersRes)
 }
@@ -230,37 +232,4 @@ func mustEnv(env string) string {
 	}
 
 	return v
-}
-
-func TestFieldsBuilder(t *testing.T) {
-	for _, tt := range []struct {
-		description string
-		input       *fieldsBuilderStruct
-		expected    string
-	}{
-		{
-			description: "short",
-			input:       FieldsBuilder.New().All().Group("orders", "id", FieldsBuilder.New().Group("project", "id")),
-			expected:    "*,orders(id,project(id))",
-		},
-		{
-			description: "long (OrderSearch)",
-			input: FieldsBuilder.New().All().
-				Group("contact", "id", "firstName", "lastName").
-				Group("customer", "id").
-				Group("deliveryAddress", "*", "country").
-				Group("department", "id").
-				Group("preliminaryInvoice", "*").
-				Group("ourContact", "id", "firstName", "lastName").
-				Group("orderLines", "*", FieldsBuilder.New().Group("product", "number")).
-				Group("project", "id"),
-			expected: "*,contact(firstName,id,lastName),customer(id),deliveryAddress(*,country),department(id),orderLines(*,product(number)),ourContact(firstName,id,lastName),preliminaryInvoice(*),project(id)",
-		},
-	} {
-		t.Run(tt.description, func(t *testing.T) {
-			require := require.New(t)
-			result := tt.input.String()
-			require.Equal(tt.expected, result)
-		})
-	}
 }
