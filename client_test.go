@@ -2,6 +2,7 @@ package tripletex
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -62,6 +63,7 @@ func TestNewClientWithAccountantClient(t *testing.T) {
 	whoAmIRes, err := c.TokenSessionWhoAmIWhoAmIWithResponse(context.Background(), &TokenSessionWhoAmIWhoAmIParams{})
 	require.NoError(err, "should not error for checking whoAmI")
 	require.NotNil(whoAmIRes, "whoAmI should not be nil")
+	require.Equal(http.StatusOK, whoAmIRes.StatusCode(), "whoAmI status should be OK (200)")
 	require.NotNil(whoAmIRes.JSON200, "whoAmI.JSON200 value should not be nil")
 	require.NotNil(whoAmIRes.JSON200.Value, "whoAmI.JSON200.Value should not be nil")
 
@@ -77,21 +79,17 @@ func TestNewClientWithAccountantClient(t *testing.T) {
 	require.NoError(c.CheckAuth(), "should be able to check token after init")
 	require.True(c.IsTokenValid(), "token should be valid after check")
 
-	// Test basic endpoint to verify auth works
 	whoAmIRes2, err := c.TokenSessionWhoAmIWhoAmIWithResponse(context.Background(), &TokenSessionWhoAmIWhoAmIParams{})
 	require.NoError(err, "whoAmI with accountant client should not error")
 	require.NotNil(whoAmIRes2, "whoAmI with accountant client should not be nil")
-	t.Logf("WhoAmI with accountant client status: %d", whoAmIRes2.StatusCode())
-	if whoAmIRes2.StatusCode() != http.StatusOK {
-		t.Logf("WhoAmI response body: %s", string(whoAmIRes2.Body))
-	}
+	require.Equal(http.StatusOK, whoAmIRes2.StatusCode(), "whoAmI status should be OK (200)")
 
 	departmentRes, err := c.DepartmentSearchWithResponse(context.Background(), &DepartmentSearchParams{})
 	require.NoError(err, "departments search should not error")
 	require.NotNil(departmentRes, "departments res should not be nil")
 
 	if departmentRes.StatusCode() != http.StatusOK {
-		t.Logf("Department search failed with status: %d", departmentRes.StatusCode())
+		t.Logf("departments search failed with status: %d", departmentRes.StatusCode())
 		if departmentRes.Body != nil {
 			t.Logf("Response body: %s", string(departmentRes.Body))
 		}
@@ -121,122 +119,62 @@ func TestEmployeeTokenEntitlements(t *testing.T) {
 	require.NoError(err, "whoAmI should not error")
 	require.NotNil(whoAmIRes.JSON200, "whoAmI JSON200 should not be nil")
 	require.NotNil(whoAmIRes.JSON200.Value, "whoAmI value should not be nil")
+	j, _ := json.MarshalIndent(whoAmIRes.JSON200.Value, "", "  ")
+	t.Logf("whoAmIRes: %s", string(j))
 
-	employeeId := whoAmIRes.JSON200.Value.EmployeeId
-	actualEmployeeId := whoAmIRes.JSON200.Value.ActualEmployeeId
+	employeeId := int64(*whoAmIRes.JSON200.Value.EmployeeId)
+	actualEmployeeId := int64(*whoAmIRes.JSON200.Value.ActualEmployeeId)
 
 	require.NotNil(employeeId, "employeeId should not be nil")
 	require.NotNil(actualEmployeeId, "actualEmployeeId should not be nil")
 
-	t.Logf("Employee ID (owner): %d", *employeeId)
-	t.Logf("Actual Employee ID (token): %d", *actualEmployeeId)
+	t.Logf("Employee ID (owner): %d", employeeId)
+	t.Logf("Actual Employee ID (token): %d", actualEmployeeId)
 
 	// Step 2: Try to get entitlements - this may fail due to permissions
-	ownerEntitlements, err := c.EmployeeEntitlementGetWithResponse(context.Background(), int64(*employeeId), &EmployeeEntitlementGetParams{})
+	ownerEntitlements, err := c.EmployeeEntitlementSearchWithResponse(context.Background(), &EmployeeEntitlementSearchParams{EmployeeId: &employeeId})
 	require.NoError(err, "owner entitlements should not error")
-	t.Logf("Owner entitlements status: %d", ownerEntitlements.StatusCode())
-	if ownerEntitlements.StatusCode() != http.StatusOK {
-		t.Logf("Owner entitlements response body: %s", string(ownerEntitlements.Body))
-		t.Skip("Cannot access entitlements - likely missing 'User admin' permission")
-		return
-	}
+	require.Equal(http.StatusOK, ownerEntitlements.StatusCode(), "owner entitlements status should be OK (200)")
 
-	tokenEntitlements, err := c.EmployeeEntitlementGetWithResponse(context.Background(), int64(*actualEmployeeId), &EmployeeEntitlementGetParams{})
+	tokenEntitlements, err := c.EmployeeEntitlementSearchWithResponse(context.Background(), &EmployeeEntitlementSearchParams{EmployeeId: &actualEmployeeId})
 	require.NoError(err, "token entitlements should not error")
-	t.Logf("Token entitlements status: %d", tokenEntitlements.StatusCode())
-	if tokenEntitlements.StatusCode() != http.StatusOK {
-		t.Logf("Token entitlements response body: %s", string(tokenEntitlements.Body))
-		t.Skip("Cannot access token entitlements - likely missing 'User admin' permission")
-		return
-	}
+	require.Equal(http.StatusOK, tokenEntitlements.StatusCode(), "token entitlements status should be OK (200)")
 
 	require.NotNil(ownerEntitlements.JSON200, "owner entitlements JSON200 should not be nil")
-	require.NotNil(ownerEntitlements.JSON200.Value, "owner entitlements value should not be nil")
+	require.NotNil(ownerEntitlements.JSON200.Values, "owner entitlements value should not be nil")
 	require.NotNil(tokenEntitlements.JSON200, "token entitlements JSON200 should not be nil")
-	require.NotNil(tokenEntitlements.JSON200.Value, "token entitlements value should not be nil")
+	require.NotNil(tokenEntitlements.JSON200.Values, "token entitlements value should not be nil")
 
 	// Check if both users have "User admin" entitlement
-	ownerHasUserAdmin := ownerEntitlements.JSON200.Value.Name != nil && *ownerEntitlements.JSON200.Value.Name == "User admin"
-	tokenHasUserAdmin := tokenEntitlements.JSON200.Value.Name != nil && *tokenEntitlements.JSON200.Value.Name == "User admin"
+	hasUserAdmin := func(entitlements *[]Entitlement) bool {
+		for _, entitlement := range *entitlements {
+			if entitlement.Name != nil && *entitlement.Name == "User admin" {
+				return true
+			}
+		}
+		return false
+	}
+
+	ownerHasUserAdmin := hasUserAdmin(ownerEntitlements.JSON200.Values)
+	tokenHasUserAdmin := hasUserAdmin(tokenEntitlements.JSON200.Values)
 
 	t.Logf("Owner has 'User admin': %t", ownerHasUserAdmin)
 	t.Logf("Token has 'User admin': %t", tokenHasUserAdmin)
 
-	// Log entitlements for debugging
-	if ownerEntitlements.JSON200.Value.Name != nil {
-		t.Logf("Owner entitlement: %s", *ownerEntitlements.JSON200.Value.Name)
-	}
-	if tokenEntitlements.JSON200.Value.Name != nil {
-		t.Logf("Token entitlement: %s", *tokenEntitlements.JSON200.Value.Name)
-	}
-}
-
-func TestAccountantTokenEntitlements(t *testing.T) {
-	require := require.New(t)
-
-	baseURL := mustEnv("TRIPLETEX_BASE_URL_ACCOUNTANT")
-	consumerToken := mustEnv("TRIPLETEX_CONSUMER_TOKEN_ACCOUNTANT")
-	employeeToken := mustEnv("TRIPLETEX_EMPLOYEE_TOKEN_ACCOUNTANT")
-	creds := Credentials{
-		ConsumerToken: consumerToken,
-		EmployeeToken: employeeToken,
-	}
-
-	c := New(creds, WithBaseURLOption(baseURL))
-	require.NoError(c.CheckAuth())
-
-	// Step 1: Get whoAmI to find employeeId and actualEmployeeId
-	whoAmIRes, err := c.TokenSessionWhoAmIWhoAmIWithResponse(context.Background(), &TokenSessionWhoAmIWhoAmIParams{})
-	require.NoError(err, "whoAmI should not error")
-	require.NotNil(whoAmIRes.JSON200, "whoAmI JSON200 should not be nil")
-	require.NotNil(whoAmIRes.JSON200.Value, "whoAmI value should not be nil")
-
-	employeeId := whoAmIRes.JSON200.Value.EmployeeId
-	actualEmployeeId := whoAmIRes.JSON200.Value.ActualEmployeeId
-
-	require.NotNil(employeeId, "employeeId should not be nil")
-	require.NotNil(actualEmployeeId, "actualEmployeeId should not be nil")
-
-	t.Logf("Accountant Employee ID (owner): %d", *employeeId)
-	t.Logf("Accountant Actual Employee ID (token): %d", *actualEmployeeId)
-
-	// Step 2: Try to get entitlements - this may fail due to permissions
-	ownerEntitlements, err := c.EmployeeEntitlementGetWithResponse(context.Background(), int64(*employeeId), &EmployeeEntitlementGetParams{})
-	require.NoError(err, "owner entitlements should not error")
-	t.Logf("Accountant Owner entitlements status: %d", ownerEntitlements.StatusCode())
-	if ownerEntitlements.StatusCode() != http.StatusOK {
-		t.Logf("Accountant Owner entitlements response body: %s", string(ownerEntitlements.Body))
-		t.Skip("Cannot access accountant entitlements - likely missing 'User admin' permission")
-		return
-	}
-
-	require.NotNil(ownerEntitlements.JSON200, "owner entitlements JSON200 should not be nil")
-	require.NotNil(ownerEntitlements.JSON200.Value, "owner entitlements value should not be nil")
-
-	// Check if user has "User admin" entitlement
-	ownerHasUserAdmin := ownerEntitlements.JSON200.Value.Name != nil && *ownerEntitlements.JSON200.Value.Name == "User admin"
-	t.Logf("Accountant Owner has 'User admin': %t", ownerHasUserAdmin)
-
-	// Log entitlements for debugging
-	if ownerEntitlements.JSON200.Value.Name != nil {
-		t.Logf("Accountant Owner entitlement: %s", *ownerEntitlements.JSON200.Value.Name)
-	}
-	require.False(c.IsTokenValid())
-	require.NoError(c.CheckAuth())
-	departmentRes, err := c.DepartmentSearchWithResponse(context.Background(), &DepartmentSearchParams{})
-	require.NoError(err, "departments search should not error")
-	require.NotNil(departmentRes, "departments res should not be nil")
-
-	if departmentRes.StatusCode() != http.StatusOK {
-		t.Logf("Department search failed with status: %d", departmentRes.StatusCode())
-		if departmentRes.Body != nil {
-			t.Logf("Response body: %s", string(departmentRes.Body))
+	// Log all entitlements for debugging
+	t.Log("Owner entitlements:")
+	for _, entitlement := range *ownerEntitlements.JSON200.Values {
+		if entitlement.Name != nil {
+			t.Logf("  - %s", *entitlement.Name)
 		}
 	}
 
-	require.Equal(http.StatusOK, departmentRes.StatusCode(), "departments status should be OK (200)")
-	require.NotNil(departmentRes.JSON200, "departments res.JSON200 should not be nil")
-	require.NotNil(departmentRes.JSON200.Values, "departments res.JSON200.Values should not be nil")
+	t.Log("Token entitlements:")
+	for _, entitlement := range *tokenEntitlements.JSON200.Values {
+		if entitlement.Name != nil {
+			t.Logf("  - %s", *entitlement.Name)
+		}
+	}
 }
 
 // Require environment variable. Panics if not found.
