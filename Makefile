@@ -7,8 +7,7 @@ generate:
 	
 .PHONY: api-openapi
 api-openapi:
-	@echo "openapi: getting latest Swagger from Tripletex and converting to OpenAPI 3"
-	@curl https://converter.swagger.io/api/convert?url=https://tripletex.no/v2/swagger.json > $(openapi_path)
+	@curl https://tripletex.no/v2/openapi.json | jq -c > $(openapi_path)
 	@echo "openapi: fixing content types"
 	@sed -i '' 's|\*/\*|application/json|g' $(openapi_path)
 
