@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/valuetechdev/tripletex-go/fields"
+	"github.com/valuetechdev/tripletex-go/fieldsbuilder"
 )
 
 func TestNewClient(t *testing.T) {
@@ -32,8 +32,8 @@ func TestNewClient(t *testing.T) {
 	lastYear, err := time.Parse(time.DateOnly, "2024-01-01")
 	require.NoError(err)
 	lastYearString := lastYear.Format(time.RFC3339)
-	f := fields.Builder.Add("name").Add("id").String()
-	customersRes, err := c.CustomerSearchWithResponse(context.Background(), &CustomerSearchParams{ChangedSince: &lastYearString, Fields: &f})
+	fields := fieldsbuilder.New().Single("name").Single("id").String()
+	customersRes, err := c.CustomerSearchWithResponse(context.Background(), &CustomerSearchParams{ChangedSince: &lastYearString, Fields: &fields})
 	require.NoError(err)
 	require.NotNil(customersRes)
 }
