@@ -1,4 +1,4 @@
-package fields
+package fieldsbuilder
 
 import (
 	"fmt"
@@ -40,14 +40,6 @@ type builderStruct struct {
 	fields fields
 }
 
-// Builder is the global builder instance used to create new field builders.
-// Use [builderStruct.New] to start building field specifications.
-//
-// Example:
-//
-//	fields := Builder.New().All().Add("name").String()
-var Builder = &builderStruct{}
-
 // New creates a new [Builder] instance with an empty field set.
 // This is the starting point for building field specifications.
 //
@@ -56,7 +48,7 @@ var Builder = &builderStruct{}
 //	builder := Builder.New()
 //	fields := builder.Add("name").Add("email").String()
 //	// Result: "email,name"
-func (fb *builderStruct) New() *builderStruct {
+func New() *builderStruct {
 	return &builderStruct{fields: make(fields)}
 }
 
@@ -78,17 +70,17 @@ func (fb *builderStruct) All() *builderStruct {
 	return fb
 }
 
-// Add adds a simple field to the field specification.
+// Single adds a simple field to the field specification.
 // Simple fields are those without nested sub-fields.
 //
 // Example:
 //
-//	fields := Builder.New().Add("name").Add("email").String()
+//	fields := Builder.New().Single("name").Single("email").String()
 //	// Result: "email,name"
 //
-//	fields = Builder.New().Add("id").Add("firstName").Add("lastName").String()
+//	fields = Builder.New().Single("id").Single("firstName").Single("lastName").String()
 //	// Result: "firstName,id,lastName"
-func (fb *builderStruct) Add(name string) *builderStruct {
+func (fb *builderStruct) Single(name string) *builderStruct {
 	if fb.fields == nil {
 		fb.fields = make(fields)
 	}

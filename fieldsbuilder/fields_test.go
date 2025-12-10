@@ -1,4 +1,4 @@
-package fields
+package fieldsbuilder
 
 import (
 	"testing"
@@ -13,20 +13,25 @@ func TestFieldsBuilder(t *testing.T) {
 		expected    string
 	}{
 		{
-			description: "short",
-			input:       Builder.New().All().Group("orders", "id", Builder.New().Group("project", "id")),
+			description: "with single",
+			input:       New().Single("id"),
+			expected:    "id",
+		},
+		{
+			description: "with two groups",
+			input:       New().All().Group("orders", "id", New().Group("project", "id")),
 			expected:    "*,orders(id,project(id))",
 		},
 		{
-			description: "long (OrderSearch)",
-			input: Builder.New().All().
+			description: "with multiple groups (OrderSearch)",
+			input: New().All().
 				Group("contact", "id", "firstName", "lastName").
 				Group("customer", "id").
 				Group("deliveryAddress", "*", "country").
 				Group("department", "id").
 				Group("preliminaryInvoice", "*").
 				Group("ourContact", "id", "firstName", "lastName").
-				Group("orderLines", "*", Builder.New().Group("product", "number")).
+				Group("orderLines", "*", New().Group("product", "number")).
 				Group("project", "id"),
 			expected: "*,contact(firstName,id,lastName),customer(id),deliveryAddress(*,country),department(id),orderLines(*,product(number)),ourContact(firstName,id,lastName),preliminaryInvoice(*),project(id)",
 		},
