@@ -1,0 +1,18 @@
+[tools]
+go = "latest"
+golangci-lint = "latest"
+hk = "latest"
+
+[vars]
+openapi_path = "./api/openapi.json"
+
+[tasks.api]
+description = "Download latest API specifictation"
+run = [
+  "curl https://tripletex.no/v2/openapi.json | jq -c > {{vars.openapi_path}}",
+  'sed -i "" "s|\*/\*|application/json|g" {{vars.openapi_path}}'
+]
+
+[tasks.check]
+description = "Static checks"
+run = "hk check"
